@@ -49,6 +49,12 @@ var ErrControllerNotAvailable = errors.New("kafka: controller is not available")
 // the metadata.
 var ErrNoTopicsToUpdateMetadata = errors.New("kafka: no specific topics to update metadata")
 
+// SerDe serialization error
+var ErrSerializationError = errors.New("kafka: producer serialization error")
+
+// SerDe deserialization error
+var ErrDeserializationError = errors.New("kafka: consumer deserialization error")
+
 // PacketEncodingError is returned from a failure while encoding a Kafka packet. This can happen, for example,
 // if you try to encode a string over 2^15 characters in length, since Kafka's encoding rules do not permit that.
 type PacketEncodingError struct {

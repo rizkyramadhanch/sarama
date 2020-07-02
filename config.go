@@ -153,6 +153,8 @@ type Config struct {
 	// Producer is the namespace for configuration related to producing messages,
 	// used by the Producer.
 	Producer struct {
+		Serde *serde
+
 		// The maximum permitted size of a message (defaults to 1000000). Should be
 		// set equal to or smaller than the broker's `message.max.bytes`.
 		MaxMessageBytes int
@@ -234,6 +236,7 @@ type Config struct {
 	// Consumer is the namespace for configuration related to consuming messages,
 	// used by the Consumer.
 	Consumer struct {
+		Serde *serde
 
 		// Group is the namespace for configuring consumer group.
 		Group struct {
@@ -449,7 +452,10 @@ func NewConfig() *Config {
 	c.Producer.Retry.Backoff = 100 * time.Millisecond
 	c.Producer.Return.Errors = true
 	c.Producer.CompressionLevel = CompressionLevelDefault
-
+	serde, err := NewSerde(c);
+	if (err == nil) {
+		c.Producer.Serde = serde
+    }
 	c.Consumer.Fetch.Min = 1
 	c.Consumer.Fetch.Default = 1024 * 1024
 	c.Consumer.Retry.Backoff = 2 * time.Second
@@ -460,7 +466,10 @@ func NewConfig() *Config {
 	c.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
 	c.Consumer.Offsets.Initial = OffsetNewest
 	c.Consumer.Offsets.Retry.Max = 3
-
+	serde, err = NewSerde(c);
+	if (err == nil) {
+		c.Consumer.Serde = serde
+    }
 	c.Consumer.Group.Session.Timeout = 10 * time.Second
 	c.Consumer.Group.Heartbeat.Interval = 3 * time.Second
 	c.Consumer.Group.Rebalance.Strategy = BalanceStrategyRange

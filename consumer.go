@@ -74,6 +74,7 @@ type Consumer interface {
 
 type consumer struct {
 	conf            *Config
+	deserializer    *deserializer
 	children        map[string]map[int32]*partitionConsumer
 	brokerConsumers map[*Broker]*brokerConsumer
 	client          Client
@@ -110,6 +111,8 @@ func newConsumer(client Client) (Consumer, error) {
 		children:        make(map[string]map[int32]*partitionConsumer),
 		brokerConsumers: make(map[*Broker]*brokerConsumer),
 	}
+
+	c.deserializer = c.conf.Consumer.Serde.Deserializer()
 
 	return c, nil
 }
@@ -505,7 +508,8 @@ func (child *partitionConsumer) parseMessages(msgSet *MessageSet) ([]*ConsumerMe
 			if offset < child.offset {
 				continue
 			}
-			messages = append(messages, &ConsumerMessage{
+
+			msg := &ConsumerMessage{
 				Topic:          child.topic,
 				Partition:      child.partition,
 				Key:            msg.Msg.Key,
@@ -513,7 +517,14 @@ func (child *partitionConsumer) parseMessages(msgSet *MessageSet) ([]*ConsumerMe
 				Offset:         offset,
 				Timestamp:      timestamp,
 				BlockTimestamp: msgBlock.Msg.Timestamp,
-			})
+			}
+
+			msg, err := child.consumer.deserializer.Deserialize(msg)
+			if (err != nil) {
+				return messages, err
+			}
+
+			messages = append(messages, msg)
 			child.offset = offset + 1
 		}
 	}

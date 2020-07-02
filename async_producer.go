@@ -109,6 +109,7 @@ func newTransactionManager(conf *Config, client Client) (*transactionManager, er
 type asyncProducer struct {
 	client Client
 	conf   *Config
+	serializer  *serializer
 
 	errors                    chan *ProducerError
 	input, successes, retries chan *ProducerMessage
@@ -161,6 +162,8 @@ func newAsyncProducer(client Client) (AsyncProducer, error) {
 		brokerRefs: make(map[*brokerProducer]int),
 		txnmgr:     txnmgr,
 	}
+
+	p.serializer = p.conf.Producer.Serde.Serializer()
 
 	// launch our singleton dispatchers
 	go withRecover(p.dispatcher)
@@ -355,6 +358,13 @@ func (p *asyncProducer) dispatcher() {
 			p.returnError(msg, ConfigurationError("Producing headers requires Kafka at least v0.11"))
 			continue
 		}
+
+		msg, err := p.serializer.Serialize(msg)
+		if (err != nil) {
+			p.returnError(msg, ErrSerializationError)
+			continue
+		}
+
 		if msg.byteSize(version) > p.conf.Producer.MaxMessageBytes {
 			p.returnError(msg, ErrMessageSizeTooLarge)
 			continue
